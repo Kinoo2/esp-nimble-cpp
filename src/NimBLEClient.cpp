@@ -1055,6 +1055,13 @@ int NimBLEClient::handleGapEvent(struct ble_gap_event *event, void *arg) {
                 pClient->m_conn_id = event->connect.conn_handle;
 
                 rc = ble_gattc_exchange_mtu(pClient->m_conn_id, NULL,NULL);
+                if(rc == BLE_HS_EALREADY) {
+                    // The peer exchanged the MTU before this event was posted, so there is
+                    // no exchange of ours to wait for: release the task as connected.
+                    rc = 0;
+                    NimBLEDevice::addIgnored(pClient->m_peerAddress);
+                    break;
+                }
                 if(rc != 0) {
                     NIMBLE_LOGE(LOG_TAG, "MTU exchange error; rc=%d %s",
                                 rc, NimBLEUtils::returnCodeToString(rc));
